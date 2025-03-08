@@ -83,7 +83,7 @@ class ActivationBuffer:
             batch_size = self.refresh_batch_size
         try:
             return [
-                next(self.data) for _ in range(batch_size)
+                next(self.data['text']) for _ in range(batch_size)
             ]
         except StopIteration:
             raise StopIteration("End of data stream reached")
