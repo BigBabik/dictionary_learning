@@ -372,7 +372,7 @@ class AutoEncoderNew(Dictionary, nn.Module):
     The autoencoder architecture and initialization used in https://transformer-circuits.pub/2024/april-update/index.html#training-saes
     """
 
-    def __init__(self, activation_dim, dict_size):
+    def __init__(self, activation_dim, dict_size, custom_init_w=None):
         super().__init__()
         self.activation_dim = activation_dim
         self.dict_size = dict_size
@@ -380,10 +380,20 @@ class AutoEncoderNew(Dictionary, nn.Module):
         self.decoder = nn.Linear(dict_size, activation_dim, bias=True)
 
         # initialize encoder and decoder weights
-        w = t.randn(activation_dim, dict_size)
-        ## normalize columns of w
-        w = w / w.norm(dim=0, keepdim=True) * 0.1
-        ## set encoder and decoder weights
+        if custom_init_w is None:
+            # Default initialization if no custom weights provided
+            w = t.randn(activation_dim, dict_size)
+            # normalize columns of w
+            w = w / w.norm(dim=0, keepdim=True) * 0.1
+        else:
+            # Use the provided custom weights
+            w = custom_init_w
+            # Ensure correct shape
+            assert w.shape == (activation_dim, dict_size), f"Expected shape ({activation_dim}, {dict_size}), got {w.shape}"
+            # Normalize if needed (can be commented out if pre-normalized weights are provided)
+            w = w / w.norm(dim=0, keepdim=True) * 0.1
+            
+        # set encoder and decoder weights
         self.encoder.weight = nn.Parameter(w.clone().T)
         self.decoder.weight = nn.Parameter(w.clone())
 
@@ -411,6 +421,7 @@ class AutoEncoderNew(Dictionary, nn.Module):
             f = f * self.decoder.weight.norm(dim=0, keepdim=True)
             return x_hat, f
 
+    @staticmethod
     def from_pretrained(path, device=None):
         """
         Load a pretrained autoencoder from a file.
